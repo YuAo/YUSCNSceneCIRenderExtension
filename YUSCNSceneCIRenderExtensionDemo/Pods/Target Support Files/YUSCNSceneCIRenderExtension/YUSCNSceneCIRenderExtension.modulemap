@@ -1,0 +1,6 @@
+framework module YUSCNSceneCIRenderExtension {
+  umbrella header "YUSCNSceneCIRenderExtension-umbrella.h"
+
+  export *
+  module * { export * }
+}

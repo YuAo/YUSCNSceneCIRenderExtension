@@ -1,0 +1,6 @@
+framework module Pods_YUSCNSceneCIRenderExtensionDemo {
+  umbrella header "Pods-YUSCNSceneCIRenderExtensionDemo-umbrella.h"
+
+  export *
+  module * { export * }
+}
