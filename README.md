@@ -1,2 +1,3 @@
 # YUSCNSceneCIRenderExtension
-An extension around SCNRenderer for rendering a SCNScene to a CIImage.
+
+__This is just an experiment, not production-ready.__
