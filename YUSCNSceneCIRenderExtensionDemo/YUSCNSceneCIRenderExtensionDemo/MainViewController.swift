@@ -64,7 +64,7 @@ class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
         sourceOverlayFilter.setValue(image, forKey: kCIInputBackgroundImageKey)
         sourceOverlayFilter.setValue(sceneImage, forKey: kCIInputImageKey)
         
-        let instantFilter = CIFilter(name: "CIPhotoEffectInstant")!
+        let instantFilter = CIFilter(name: "CIPhotoEffectProcess")!
         instantFilter.setValue(sourceOverlayFilter.outputImage, forKey: kCIInputImageKey)
         
         let result = instantFilter.outputImage!
