@@ -65,6 +65,7 @@ void YUSCNSceneCIRenderExtensionDeferExecuteCleanupBlock (__strong YUSCNSceneCIR
 - (CIImage *)renderAtTime:(CFTimeInterval)time size:(CGSize)size {
     CIImage *outputImage;
     
+    //!!!TODO: Use a pixel buffer pool here
     NSDictionary *attributes = @{(NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{}};
     CVPixelBufferRef renderTarget;
     CVPixelBufferCreate(kCFAllocatorDefault, (size_t)size.width, (size_t)size.height, kCVPixelFormatType_32BGRA, (__bridge CFDictionaryRef _Nullable)(attributes), &renderTarget);
