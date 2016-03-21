@@ -24,7 +24,22 @@ void YUSCNSceneCIRenderExtensionDeferExecuteCleanupBlock (__strong YUSCNSceneCIR
     (*block)();
 }
 
+static void YUSCNSceneCIRenderExtensionCheckGLErrors() {
+    GLenum error;
+    BOOL hadError = NO;
+    do {
+        error = glGetError();
+        if (error != 0) {
+            NSLog(@"OpenGL error: %@",@(error));
+            hadError = YES;
+        }
+    } while (error != 0);
+    assert(!hadError);
+}
+
 @interface YUSCNSceneCIRenderExtension ()
+
+@property (nonatomic) GLuint framebuffer;
 
 @property (nonatomic,strong) EAGLContext *context;
 @property (nonatomic,strong) SCNRenderer *renderer;
@@ -37,17 +52,38 @@ void YUSCNSceneCIRenderExtensionDeferExecuteCleanupBlock (__strong YUSCNSceneCIR
 
 - (instancetype)init {
     if (self = [super init]) {
-        self.context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-        self.renderer = [SCNRenderer rendererWithContext:self.context options:nil];
+        EAGLContext *context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+        _context = context;
+        _renderer = [SCNRenderer rendererWithContext:context options:nil];
         CVOpenGLESTextureCacheRef textureCache;
-        CVReturn error = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, nil, self.context, nil, &textureCache);
-        if (error) {
-            NSLog( @"Error at CVOpenGLESTextureCacheCreate %d", error);
-        } else {
-            self.textureCache = textureCache;
-        }
+        CVReturn error = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, nil, context, nil, &textureCache);
+        NSAssert(error == kCVReturnSuccess, @"Error at CVOpenGLESTextureCacheCreate %@",@(error));
+        _textureCache = textureCache;
+        
+        //setup ogl context
+        [self performWithOGLContext:^{
+            GLuint framebuffer = 0;
+            glGenFramebuffers(1, &framebuffer);
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+            _framebuffer = framebuffer;
+            
+            YUSCNSceneCIRenderExtensionCheckGLErrors();
+        }];
     }
     return self;
+}
+
+- (void)performWithOGLContext:(void (^)(void))code {
+    EAGLContext *oldContext = [EAGLContext currentContext];
+    if (oldContext != self.context) {
+        [EAGLContext setCurrentContext:self.context];
+    }
+    @synchronized(self.context) {
+        code();
+    }
+    if (oldContext != self.context) {
+        [EAGLContext setCurrentContext:oldContext];
+    }
 }
 
 - (void)setScene:(SCNScene *)scene {
@@ -63,8 +99,6 @@ void YUSCNSceneCIRenderExtensionDeferExecuteCleanupBlock (__strong YUSCNSceneCIR
 }
 
 - (CIImage *)renderAtTime:(CFTimeInterval)time size:(CGSize)size {
-    CIImage *outputImage;
-    
     //!!!TODO: Use a pixel buffer pool here
     NSDictionary *attributes = @{(NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{},
                                  (NSString *)kCVPixelFormatOpenGLESCompatibility: @(YES)};
@@ -84,65 +118,56 @@ void YUSCNSceneCIRenderExtensionDeferExecuteCleanupBlock (__strong YUSCNSceneCIR
     @YU_SCNSCENE_CI_RENDER_EXTENSION_DEFER {
         CVPixelBufferRelease(renderTarget);
         CFRelease(texture);
-        CVOpenGLESTextureCacheFlush(self.textureCache, 0);
     };
     
-    EAGLContext *oldContext = [EAGLContext currentContext];
-    if (oldContext != self.context) {
-        [EAGLContext setCurrentContext:self.context];
-    }
-    @synchronized(self.context) {
-        GLuint thumbnailFramebuffer = 0;
-        glGenFramebuffers(1, &thumbnailFramebuffer);
-        glBindFramebuffer(GL_FRAMEBUFFER, thumbnailFramebuffer); //checkGLErrors()
-        
-        GLuint colorRenderbuffer = 0;
-        glGenRenderbuffers(1, &colorRenderbuffer);
-        glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, size.width, size.height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderbuffer); //checkGLErrors()
-        
+    [self performWithOGLContext:^{
         GLuint depthRenderbuffer = 0;
         glGenRenderbuffers(1, &depthRenderbuffer);
         glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, size.width, size.height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
         
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer); //checkGLErrors()
-        
-        GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        assert(framebufferStatus == GL_FRAMEBUFFER_COMPLETE);
-        if (framebufferStatus != GL_FRAMEBUFFER_COMPLETE) {
-            return nil;
-        }
+        YUSCNSceneCIRenderExtensionCheckGLErrors();
         
         glBindTexture(CVOpenGLESTextureGetTarget(texture), CVOpenGLESTextureGetName(texture));
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, CVOpenGLESTextureGetName(texture), 0);
         
-        // clear buffer
-        glViewport(0, 0, size.width, size.height);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //checkGLErrors()
+        YUSCNSceneCIRenderExtensionCheckGLErrors();
         
-        // render
-        [self.renderer renderAtTime:time]; //checkGLErrors()
+        GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        assert(framebufferStatus == GL_FRAMEBUFFER_COMPLETE);
+        if (framebufferStatus != GL_FRAMEBUFFER_COMPLETE) {
+            return;
+        }
+        
+        //clear buffer
+        glViewport(0, 0, size.width, size.height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        YUSCNSceneCIRenderExtensionCheckGLErrors();
+        
+        //render
+        [self.renderer renderAtTime:time];
+        
+        YUSCNSceneCIRenderExtensionCheckGLErrors();
         
         glFlush();
-
-        outputImage = [CIImage imageWithCVPixelBuffer:renderTarget];
-        outputImage = [outputImage imageByApplyingTransform:[outputImage imageTransformForOrientation:4]];
-        
-        glDeleteFramebuffers(1, &thumbnailFramebuffer);
-        glDeleteRenderbuffers(1, &colorRenderbuffer);
         glDeleteRenderbuffers(1, &depthRenderbuffer);
-    }
-    if (oldContext != self.context) {
-        [EAGLContext setCurrentContext:oldContext];
-    }
+    }];
     
+    CIImage *outputImage = nil;
+    outputImage = [CIImage imageWithCVPixelBuffer:renderTarget];
+    outputImage = [outputImage imageByApplyingTransform:[outputImage imageTransformForOrientation:4]];
     return outputImage;
 }
 
 - (void)dealloc {
-    CFRelease(self.textureCache);
+    [self performWithOGLContext:^{
+        glDeleteFramebuffers(1, &_framebuffer);
+    }];
+    if (_textureCache) {
+        CFRelease(_textureCache);
+    }
 }
 
 @end
