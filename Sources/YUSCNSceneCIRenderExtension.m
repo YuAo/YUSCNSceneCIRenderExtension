@@ -66,7 +66,8 @@ void YUSCNSceneCIRenderExtensionDeferExecuteCleanupBlock (__strong YUSCNSceneCIR
     CIImage *outputImage;
     
     //!!!TODO: Use a pixel buffer pool here
-    NSDictionary *attributes = @{(NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{}};
+    NSDictionary *attributes = @{(NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{},
+                                 (NSString *)kCVPixelFormatOpenGLESCompatibility: @(YES)};
     CVPixelBufferRef renderTarget;
     CVPixelBufferCreate(kCFAllocatorDefault, (size_t)size.width, (size_t)size.height, kCVPixelFormatType_32BGRA, (__bridge CFDictionaryRef _Nullable)(attributes), &renderTarget);
     CVOpenGLESTextureRef texture;
