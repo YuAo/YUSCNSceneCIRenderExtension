@@ -7,6 +7,7 @@ use_frameworks!
 target 'YUSCNSceneCIRenderExtensionDemo' do
 
 pod 'YUSCNSceneCIRenderExtension', :path => '../'
+pod 'YUCIImageView'
 
 end
 

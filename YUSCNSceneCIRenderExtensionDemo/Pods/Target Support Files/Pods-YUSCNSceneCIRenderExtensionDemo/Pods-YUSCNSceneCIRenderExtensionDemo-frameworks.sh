@@ -84,8 +84,10 @@ strip_invalid_archs() {
 
 
 if [[ "$CONFIGURATION" == "Debug" ]]; then
+  install_framework "Pods-YUSCNSceneCIRenderExtensionDemo/YUCIImageView.framework"
   install_framework "Pods-YUSCNSceneCIRenderExtensionDemo/YUSCNSceneCIRenderExtension.framework"
 fi
 if [[ "$CONFIGURATION" == "Release" ]]; then
+  install_framework "Pods-YUSCNSceneCIRenderExtensionDemo/YUCIImageView.framework"
   install_framework "Pods-YUSCNSceneCIRenderExtensionDemo/YUSCNSceneCIRenderExtension.framework"
 fi

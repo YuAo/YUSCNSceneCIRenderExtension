@@ -9,6 +9,7 @@
 import UIKit
 import AVFoundation
 import YUSCNSceneCIRenderExtension
+import YUCIImageView
 
 class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
 
@@ -18,14 +19,16 @@ class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
     
     let videoSize = CGSizeMake(480, 640)
     
-    weak var previewImageView: UIImageView!
+    weak var previewImageView: YUCIImageView!
     
     let coreImageSceneRenderExtension = YUSCNSceneCIRenderExtension()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        let previewImageView = UIImageView(frame: CGRectZero)
+        let previewImageView = YUCIImageView(frame: self.view.bounds)
+        previewImageView.renderer = YUCIImageGLKRenderer(EAGLContext: nil)
+        previewImageView.imageContentMode = .ScaleAspectFill
         self.view.addSubview(previewImageView)
         self.previewImageView = previewImageView
         
@@ -60,6 +63,12 @@ class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
         let sceneImage = self.coreImageSceneRenderExtension.renderAtTime(CFAbsoluteTimeGetCurrent(), size: self.videoSize)
         
         //apply filters
+        /*
+        let blurFilter = CIFilter(name: "CIGaussianBlur")!
+        blurFilter.setValue(image.imageByClampingToExtent(), forKey: kCIInputImageKey)
+        let blurredImage = blurFilter.outputImage!.imageByCroppingToRect(image.extent)
+        */
+        
         let sourceOverlayFilter = CIFilter(name: "CISourceOverCompositing")!
         sourceOverlayFilter.setValue(image, forKey: kCIInputBackgroundImageKey)
         sourceOverlayFilter.setValue(sceneImage, forKey: kCIInputImageKey)
@@ -70,7 +79,7 @@ class MainViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
         let result = instantFilter.outputImage!
         
         NSOperationQueue.mainQueue().addOperationWithBlock {
-            self.previewImageView.image = UIImage(CIImage: result)
+            self.previewImageView.image = result
         }
     }
 

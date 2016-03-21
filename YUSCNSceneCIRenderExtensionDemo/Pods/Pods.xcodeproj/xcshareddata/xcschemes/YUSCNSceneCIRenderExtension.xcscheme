@@ -14,7 +14,7 @@
             buildForArchiving = "YES">
             <BuildableReference
                BuildableIdentifier = 'primary'
-               BlueprintIdentifier = 'A62F58B5AF04185F2BE2BC26F8C245B4'
+               BlueprintIdentifier = '39969348DDFEA5C6751770A52AFD0BE1'
                BlueprintName = 'YUSCNSceneCIRenderExtension'
                ReferencedContainer = 'container:Pods.xcodeproj'
                BuildableName = 'YUSCNSceneCIRenderExtension.framework'>

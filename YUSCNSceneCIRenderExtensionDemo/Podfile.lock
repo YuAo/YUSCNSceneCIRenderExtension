@@ -1,7 +1,9 @@
 PODS:
+  - YUCIImageView (0.2)
   - YUSCNSceneCIRenderExtension (0.1)
 
 DEPENDENCIES:
+  - YUCIImageView
   - YUSCNSceneCIRenderExtension (from `../`)
 
 EXTERNAL SOURCES:
@@ -9,8 +11,9 @@ EXTERNAL SOURCES:
     :path: "../"
 
 SPEC CHECKSUMS:
+  YUCIImageView: 044910350e3f1cd3fda900113912df7458d64588
   YUSCNSceneCIRenderExtension: 1e605f9ce1247af31797b844f4064ea65b216153
 
-PODFILE CHECKSUM: 08bc7bc057c7dfb0bac5ba4ee1d18586695fcaf6
+PODFILE CHECKSUM: 34b2a979df436adec240073a2fd6eca1ff4eb752
 
 COCOAPODS: 1.0.0.beta.3
