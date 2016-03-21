@@ -2,4 +2,4 @@
 
 __This is just an experiment, not production-ready.__
 
-![Screenshot](https://raw.githubusercontent.com/YuAo/YUSCNSceneCIRenderExtension/master/Assets/Screenshot.jpg)
+<img src="https://raw.githubusercontent.com/YuAo/YUSCNSceneCIRenderExtension/master/Assets/Screenshot.jpg" alt="Screenshot" width="375"/>
